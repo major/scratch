@@ -23,6 +23,29 @@ Keep reading to find out why. 🤔
 [Born in the 1960's]: https://en.wikipedia.org/wiki/Memory_paging#History
 [recommend swap memory]: https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/managing_storage_devices/getting-started-with-swap_managing-storage-devices
 
+## Overview of swap
+
+Swap exists on most systems as a partition on a disk. After partitioning,
+administrators format the partition with `mkswap`, enable it with `swapon`, and
+the kernel instantly sees available swap memory. Systems without an available
+partition can use a swap file, which is just a file on an existing filesystem
+that is formatted with `mkswap` and enabled.
+
+Both methods work well, but putting swap on a partition leads to better
+performance since you skip the overhead of a swap file on an existing partition.
+
+When system RAM is scarce, Linux can store memory pages in swap to avoid killing
+processes and crashing the system. Disks are much slower than system RAM and
+this reduces system performance until system RAM is freed. If memory usage
+continues climbing to the point where system RAM and swap are fully exhausted,
+the OOM killer appears and begins killing processes until enough RAM is
+available.
+
+The long-standing advice on swap size is double the size of your system's RAM.
+For example, allocate 2GB of swap for systems with 1GB of system RAM. Although
+this ratio works well for smaller systems, it doesn't scale up for systems with
+hundreds of gigabytes of system RAM.
+
 ## The case for swap on cloud
 
 The rise of microservices (small, interconnected services that form a large
@@ -163,13 +186,26 @@ Filename        Type    Size      Used    Priority
 
 ## Conclusion
 
-Your choice for swap memory on cloud instances heavily depends on your
-deployment goals. If you need high performance at all times and you can replace
-misbehaving instances quickly, swap may not be worth it.
+Swap memory provides two valuable benefits: a safety cushion when system RAM
+usage increases to dangerous levels and a parking lot for rarely used memory
+pages that are taking valuable space in the system RAM. That safety cushion
+comes with a performance penalty since memory paging to disks is incredibly slow
+relative to system memory.
 
-However, if you want to diagnose memory issues as they happen, or if you have
-difficulty replacing running instances quickly, swap memory could give you that
-small safety net to keep on going (with reduced performance).
+Cloud deployments rarely see swap memory deployed, but swap still has benefits
+there. Choosing to deploy swap allows for a safety cushion when applications
+misbehave, but it could cause an application to perform slowly until the memory
+consumption issues are resolved. Skipping swap removes the cushion but ensures
+that a misbehaving application is immediately stopped. Cloud administrators must
+have a plan in place to handle these situations.
+
+Luckily, cloud-init appears on the vast majority of cloud instances and it
+allows for swap file creation with only a few lines of YAML. Swap memory is also
+easy to configure after the deployment via simple shell commands or scripts.
+
+Whether you choose to deploy swap memory or to go without, ensure you have a
+plan when the worst happens. Monitor systems appropriately and keep a holistic
+view of the application that they serve.
 
 
 [`mounts` module]: https://cloudinit.readthedocs.io/en/latest/topics/modules.html#mounts
